@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://e78udsmwbk5w"]
+
+[ext_resource type="Script" uid="uid://cmw1qcsb5b57" path="res://scripts/CombatGridManager.gd" id="1_fttm1"]
+
+[node name="CombatInterface" type="CanvasLayer"]
+script = ExtResource("1_fttm1")
+
+[node name="CombatGrid" type="GridContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
