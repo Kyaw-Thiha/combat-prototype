@@ -1,4 +1,6 @@
-extends LandBaseAttack
+## Attack applied over a column of the enemy's division
+
+extends LandAttack
 class_name LandColumnAttack
 
 func _init(col: int, soft_damage: float, medium_damage: float, hard_damage: float) -> void:

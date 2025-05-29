@@ -1,4 +1,4 @@
-extends LandBaseAttack
+extends LandAttack
 class_name LandRowAttack
 
 func _init(row: int, soft_damage: float, medium_damage: float, hard_damage: float) -> void:
