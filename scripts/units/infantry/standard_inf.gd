@@ -13,6 +13,8 @@ func _init(row: int, col: int, health: float = 500, combat_readiness: float = 1,
 	self.medium_offense = 3
 	self.hard_defense = 3
 	self.hard_offense = 1
+	self.defense = 0
+	self.armour_class = ArmourClass.SOFT
 	self.air_damage = 0.01
 	self.naval_damage = 0
 	
@@ -20,15 +22,6 @@ func _init(row: int, col: int, health: float = 500, combat_readiness: float = 1,
 	self.concealment_value = 0
 	self.combat_readiness = 1
 	self.experience = experience
-
-func land_attack(damage_type: DamageType):
-	var damages = _get_land_attack(damage_type)
-	
-	var attack = LandAttack.new(damages[0], damages[1], damages[2])
-	attack.apply_column_targets(self.col, recon_effects)
-	attack = _apply_experience(attack)
-
-	return attack
 
 func _apply_experience(attack: LandAttack):
 	return attack

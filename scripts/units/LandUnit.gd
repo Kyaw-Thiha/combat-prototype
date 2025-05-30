@@ -35,6 +35,24 @@ class_name LandUnit
 @export var air_damage:float
 @export var naval_damage:float
 
+## Defense
+## Subtractive multiplier to enemy's attack
+@export var defense: float
+
+## Armour class
+enum ArmourClass {SOFT, MEDIUM, HARD}
+@export var armour_class: ArmourClass
+
+## Damage Drop-Off Multiplier
+## - To prevent more units = more power
+## - Values between 1 and 0
+## - Will be multiplied to damage dealt (1.0 means full damage)
+## - Index represents relative position of unit (0 index is first unit) 
+## - Different units will have different damage drop-off rates
+# Default rate ensures that maximum damage dealt by full column is 3 * combat power
+@export var damage_drop_off = [1.0, 0.8, 0.6, 0.4, 0.2] 
+# Alternative: 1, 0.8, 0.4, 0.2, 0.1
+
 ## Recon Value
 ## Amount of recon value that the unit contributes when in combat
 ## Note that
@@ -80,15 +98,49 @@ class_name LandUnit
 var row:int
 var col:int
 
-enum DamageType {DEFENSE, OFFENHealthSE}
+enum DamageType {DEFENSE, OFFENSE}
 
 # Function definitions for different attack types
-func land_attack(damage_type: DamageType) -> LandAttack:
-	return LandAttack.new()
+#func land_attack(context: LandCombatContext) -> LandAttack:
+	#return LandAttack.new()
 func air_attack():
 	pass
 func naval_attack():
 	pass
+
+func land_attack(context: LandCombatContext):
+	# Getting the damage values based on damage type
+	var damages = self._get_land_attack(context.damage_type)
+	var attack = LandAttack.new(damages[0], damages[1], damages[2])
+	
+	# Finding the enemy target
+	var result = attack.set_row_target(context.enemy_division)
+	if result == -1:
+		print("Enemy is missing")
+	
+	# Applying damage drop-off based on the unit's position
+	attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
+	
+	return attack
+
+func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
+	# Choosing damage based on armour class
+	var damage: float = 0
+	match self.armour_class:
+		ArmourClass.SOFT:
+			damage = attack.soft_damage
+		ArmourClass.MEDIUM:
+			damage = attack.medium_damage
+		ArmourClass.HARD:
+			damage = attack.hard_damage
+
+	# If attack is recon-based, apply the recon effect
+	if attack.is_recon_affected:
+		damage *= (enemy_recon_value - self.concealment_value)
+	
+	# Apply the damage
+	self.health = self.health - (damage - self.defense)
+	self.health = clampf(self.health, 0, self.health)   # Ensuring unit's health is not negative value
 
 ## Internal getter to return damage values based on damage type
 func _get_land_attack(damage_type: DamageType) -> Array[float]:

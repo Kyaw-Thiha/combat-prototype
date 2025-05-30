@@ -18,13 +18,13 @@ func _init(init_units: Array[LandUnit] = []):
 	self.units[0] = StandardInfantry.new(0, 0, 500)
 
 ## Collect the attacks of all of its units, and return it
-func attack(damage_type: LandUnit.DamageType):
+func attack(context: LandCombatContext):
 	const attacks = []
 	for row in range(row_num):
 		for col in range(col_num):
 			var unit = units[row_num * row + col_num]
 			if unit != null:
-				var damage = unit.land_attack(damage_type)
+				var damage = unit.land_attack(context)
 				attacks.append(damage)
 	return attacks
 
@@ -39,32 +39,22 @@ func get_total_recon_value() -> float:
 				total_recon_value += unit.recon_value
 	return total_recon_value
 
-##
-func apply_damage(attacks: Array[LandAttack], recon_value: float, combat_stage: int):
+## Method to apply damage to units from enemy attacks
+func apply_damage(attacks: Array[LandAttack], recon_value: float):
 	for attack in attacks:
-		for attack_target in attack.attack_targets:
-			var target = self.units[attack_target.row * row_num + attack_target.col]
-			
-			## ???
-			match attack.attack_type:
-				LandAttack.AttackType.ROW:
-					var target_row = target.row
-					while target_row < 5:
-						if _is_row_empty(target_row):
-							target_row += 1
-						else:
-							pass
-				LandAttack.AttackType.COLUMN:
-					var target_col = target.col
-					while target_col < 5:
-						if _is_col_empty(target_col):
-							target_col += 1
-						else:
-							pass
-				LandAttack.AttackType.FIXED:
-					pass
+		var target = self.units[attack.target_row * 5 + attack.target_col]
+		target.apply_Land_damage(attack, recon_value)
+	
+	return not _check_if_wiped_out()
 
-	return
+## Internal method to check if division is wiped out
+func _check_if_wiped_out():
+	for row in 5:
+		for col in 5:
+			var unit = self.units[row * 5 + col]
+			if unit.health > 0:
+				return false
+	return true
 
 ## Internal method to check if column is empty
 func _is_col_empty(col: int):
