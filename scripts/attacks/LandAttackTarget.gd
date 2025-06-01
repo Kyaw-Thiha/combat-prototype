@@ -1,65 +1,35 @@
 extends Node
-class_name  LandAttack
-
-var soft_damage: float
-var medium_damage: float
-var hard_damage: float
-
-## Position of source unit on player division in the form of 5 * row + col
-var source_row: int = -1
-var source_col: int = -1
-
-## Position of target on enemy division in the form of 5 * row + col
-var target_row: int = -1
-var target_col: int = -1
+class_name LandAttackTarget
 
 enum TargetAlgorithm {COLUMN, ROW, FIXED}
-var target_algorithm: TargetAlgorithm = TargetAlgorithm.COLUMN
+var target_algorithm: TargetAlgorithm = TargetAlgorithm.ROW
 
-## Determines whether or not the damage values are affected by recon
-var is_recon_affected: bool = false
+enum SearchDirection {LEFT, RIGHT, UP, DOWN}
+var search_direction: SearchDirection = SearchDirection.LEFT
 
-func _init(soft_damage = 0.0, medium_damage = 0.0, hard_damage = 0.0, source_row = -1, source_col = -1, target_row = -1, target_col = -1, target_algorithm = TargetAlgorithm.ROW, is_recon_affected: bool = false) -> void:
-	self.soft_damage = soft_damage
-	self.medium_damage = medium_damage
-	self.hard_damage = hard_damage
-	self.source_row  = source_row
-	self.source_col = source_col
-	self.target_row = target_row
-	self.target_col = target_col
+var priority_list: Array 
+
+func _init(target_algorithm: TargetAlgorithm, search_direction: SearchDirection, priority_list: Array = []) -> void:
 	self.target_algorithm = target_algorithm
-	self.is_recon_affected = is_recon_affected
-
-## Method to update damage values by a multiplier
-func update_damage_multiplier(multiplier: float):
-	self.soft_damage *= multiplier
-	self.medium_damage *= multiplier
-	self.hard_damage *= multiplier
-
-## Method to set the damage drop off of the unit
-func set_damage_drop_off(player_division: Division, drop_off_rate: Array[float], row: int, col: int):
-	var drop_off_count = 0
-	var current_row = 0
-	
-	while current_row < row:
-		var unit = player_division.units[current_row * 5 + col]
-		if unit != null and unit.health != 0:
-			drop_off_count += 1
-		current_row += 1
-	update_damage_multiplier(drop_off_rate[drop_off_count])
-	
-	return drop_off_rate[drop_off_count]
+	self.search_direction = search_direction
+	self.priority_list = priority_list
 
 ## Method to find target based on the algorithm
 ## Return
 ## - null if no need to do any damage
 ## - -1 if enemy division has been wiped out
 ## - else will return target position
-func find_target(enemy_division: Division):
+func find_target(enemy_division: Division, search_direction: SearchDirection, target_pos: int):
 	if self.target_algorithm == TargetAlgorithm.ROW:
-		return set_row_target(enemy_division)
+		self.target_algorithm = TargetAlgorithm.ROW
+		self.search_direction = search_direction
+		return set_row_target(enemy_division, search_direction, target_pos)
+		
 	elif self.target_algorithm == TargetAlgorithm.COLUMN:
+		self.target_algorithm = TargetAlgorithm.COLUMN
+		self.search_direction = search_direction
 		return self.set_col_target(enemy_division)
+	
 	elif self.target_algorithm == TargetAlgorithm.FIXED:
 		return null
 
@@ -67,17 +37,17 @@ func find_target(enemy_division: Division):
 ## Will return position (5 * col + row) if found
 ## Else will return -1 if no target found (ie enemy division is empty)
 ## Row attack is mainly done by infantry units
-func set_row_target(enemy_division: Division) -> int:
+func set_row_target(enemy_division: Division, search_direction: SearchDirection, target_row: int = -1) -> int:
 	self.target_algorithm = TargetAlgorithm.ROW
+	self.search_direction = search_direction
 	
-	var unit_found = false
 	var col = 0
 	var row = 0
 	# if row is already set, start from there
-	if self.target_row == -1:
+	if target_row == -1:
 		row = 0
 	else:
-		row = self.target_row
+		row = target_row
 
 	while col < 5 and row < 5:
 		# Checking the enemy in position

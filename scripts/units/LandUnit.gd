@@ -43,6 +43,9 @@ class_name LandUnit
 enum ArmourClass {SOFT, MEDIUM, HARD}
 @export var armour_class: ArmourClass
 
+## Target Algorithm
+@export var target_algorithm: LandAttack.TargetAlgorithm = LandAttack.TargetAlgorithm.ROW
+
 ## Damage Drop-Off Multiplier
 ## - To prevent more units = more power
 ## - Values between 1 and 0
@@ -50,7 +53,7 @@ enum ArmourClass {SOFT, MEDIUM, HARD}
 ## - Index represents relative position of unit (0 index is first unit) 
 ## - Different units will have different damage drop-off rates
 # Default rate ensures that maximum damage dealt by full column is 3 * combat power
-@export var damage_drop_off = [1.0, 0.8, 0.6, 0.4, 0.2] 
+@export var damage_drop_off: Array[float] = [1.0, 0.8, 0.6, 0.4, 0.2] 
 # Alternative: 1, 0.8, 0.4, 0.2, 0.1
 
 ## Recon Value
@@ -111,7 +114,8 @@ func naval_attack():
 func land_attack(context: LandCombatContext):
 	# Getting the damage values based on damage type
 	var damages = self._get_land_attack(context.damage_type)
-	var attack = LandAttack.new(damages[0], damages[1], damages[2])
+	print("Row: ", self.row, "Col: ", self.col)
+	var attack = LandAttack.new(damages[0], damages[1], damages[2], self.row, self.col)
 	
 	# Finding the enemy target
 	var result = attack.set_row_target(context.enemy_division)
@@ -121,7 +125,7 @@ func land_attack(context: LandCombatContext):
 	# Applying damage drop-off based on the unit's position
 	attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
 	
-	return attack
+	return [attack]
 
 func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
 	# Choosing damage based on armour class
@@ -144,9 +148,9 @@ func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
 
 ## Internal getter to return damage values based on damage type
 func _get_land_attack(damage_type: DamageType) -> Array[float]:
-	var soft_damage:int
-	var medium_damage:int
-	var hard_damage:int
+	var soft_damage:float
+	var medium_damage:float
+	var hard_damage:float
 	if (damage_type == self.DamageType.DEFENSE):
 		soft_damage = self.soft_defense
 		medium_damage = self.medium_defense
