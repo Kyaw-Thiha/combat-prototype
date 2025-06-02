@@ -22,6 +22,10 @@ func _init(soft_damage = 0.0, medium_damage = 0.0, hard_damage = 0.0, source_uni
 	self.target_unit = target_unit
 	self.is_recon_affected = is_recon_affected
 
+## Helper method to copy itself, and return a new object
+func copy():
+	return LandAttack.new(self.soft_damage, self.medium_damage, self.hard_damage, self.source_unit, self.target_unit, self.is_recon_affected)
+
 ## Method to update damage values by a multiplier
 func update_damage_multiplier(multiplier: float):
 	self.soft_damage *= multiplier
@@ -45,10 +49,17 @@ func set_damage_drop_off(player_division: Division, drop_off_rate: Array[float],
 ## Helper methods to find target for most common attack algorithms
 
 ## Method to find target by going through the row
-## Will return position (5 * col + row) if found
-## Else will return -1 if no target found (ie enemy division is empty)
 ## Row attack is mainly done by infantry units
-func set_row_target(enemy_division: Division, priority: Dictionary[int, Array], row = -1) -> LandUnit:
+## Return:
+## - enemy_unit if found
+## - null if no target found (ie enemy division is empty)
+##
+## Parameters:
+## - enemy_division: The enemy division that will be targeted
+## - priority: A dictionary of priority to select enemy units
+## - row: A starting row to start the search on
+## - exclude_list: A list of enemy units to exclude from targeting
+func set_row_target(enemy_division: Division, priority: Dictionary[int, Array], row = -1, exclude_list: Array[LandUnit] = []) -> LandUnit:
 	var units_found: Dictionary[int, LandUnit] = {}   # Dictionary of found units based on priority level
 	var col = self.source_unit.col
 	# if target unit is already set, start from there
@@ -65,7 +76,7 @@ func set_row_target(enemy_division: Division, priority: Dictionary[int, Array], 
 		for i in range(5):
 			var pos = 5 * row + i
 			var enemy_unit = enemy_division.units[pos]
-			if enemy_unit != null and enemy_unit.health > 0:
+			if enemy_unit != null and enemy_unit.health > 0 and enemy_unit not in exclude_list:
 				found = true
 		## If no unit found in this row, go to the next one
 		if not found:
@@ -82,7 +93,7 @@ func set_row_target(enemy_division: Division, priority: Dictionary[int, Array], 
 	while count < 5:
 		var pos = 5 * row + col
 		var enemy_unit = enemy_division.units[pos]
-		if enemy_unit != null and enemy_unit.health > 0:
+		if enemy_unit != null and enemy_unit.health > 0 and enemy_unit not in exclude_list:
 			# If no priority is set, return the first enemy unit found
 			if priority.is_empty():
 				self.target_unit = enemy_unit
@@ -101,11 +112,18 @@ func set_row_target(enemy_division: Division, priority: Dictionary[int, Array], 
 	return self.target_unit
 
 ## Method to find target by going through the column
-## Will return position (5 * col + row) if found
-## Else will return -1 if no target found (ie enemy division is empty)
 ## Column attack is mainly done by armoured units
+## 
+## Return
+## - enemy_unit if found
+## - null if no target found (ie enemy division is empty)
+##
+## Parameters:
+## - enemy_division: The enemy division that will be targeted
+## - search_direction: Search direction of the column - left or right
+## - col: A starting col to start the search on
 enum ColSearchDirection {LEFT, RIGHT}
-func set_col_target(enemy_division: Division, col:int = 0, search_direction: ColSearchDirection = ColSearchDirection.RIGHT) -> LandUnit:
+func set_col_target(enemy_division: Division, search_direction: ColSearchDirection, col:int = 0) -> LandUnit:
 	var unit_found = false
 	var row = 0
 	var count = 0      # count to stop the loop when we get back to starting col
@@ -133,8 +151,20 @@ func set_col_target(enemy_division: Division, col:int = 0, search_direction: Col
 			
 	return null  # if not found
 
+## A method to search through the grid of the enemy unit
+## Grid attack is done by priority-focused units like snipers
+##
+## Returns
+## - enemy_unit if found
+## - null if no target found (ie enemy division is empty)
+##
+## Parameters
+## - enemy_division: The enemy division that will be targeted
+## - search_direction: Direction to search the grid on - row by row or column by column
+## - priority: A dictionary of priority to select enemy units
+## - exclude_list: A list of enemy units to exclude from targeting
 enum GridSearchDirection {ROW, COL}
-func set_grid_target(enemy_division: Division, search_direction: GridSearchDirection, priority: Dictionary[int, Array]):
+func set_grid_target(enemy_division: Division, search_direction: GridSearchDirection, priority: Dictionary[int, Array], exclude_list: Array[LandUnit] = []):
 	var row = 0
 	var col = 0
 	var count = 0
@@ -143,7 +173,7 @@ func set_grid_target(enemy_division: Division, search_direction: GridSearchDirec
 	while count < 5:
 		var pos = 5 * row + col
 		var enemy_unit = enemy_division.units[pos]
-		if enemy_unit != null and enemy_unit.health > 0:
+		if enemy_unit != null and enemy_unit.health > 0 and enemy_unit not in exclude_list:
 			# If no priority is set, return the first enemy unit found
 			if priority.is_empty():
 				self.target_unit = enemy_unit
@@ -187,6 +217,7 @@ func add_unit_based_on_priority(units_found: Dictionary[int, LandUnit], priority
 		if not units_found.has(100):
 			units_found[100] = current_unit
 	return
+
 
 ## Helper method to return the unit with highest priority
 func choose_unit_based_on_priority(units_found: Dictionary[int, LandUnit]) -> LandUnit:

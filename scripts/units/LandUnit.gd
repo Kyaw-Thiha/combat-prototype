@@ -175,10 +175,10 @@ func find_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAtt
 	elif self.target_algorithm == TargetAlgorithm.COLUMN or self.target_algorithm == TargetAlgorithm.COLUMNRIGHT or self.target_algorithm == TargetAlgorithm.COLUMNLEFT:
 		if self.col <= 2:
 			self.target_algorithm = TargetAlgorithm.COLUMNRIGHT
-			result = attack.set_col_target(enemy_division, self.col, LandAttack.ColSearchDirection.RIGHT)
+			result = attack.set_col_target(enemy_division, LandAttack.ColSearchDirection.RIGHT, self.col)
 		else:
 			self.target_algorithm = TargetAlgorithm.COLUMNLEFT
-			result = attack.set_col_target(enemy_division, self.col, LandAttack.ColSearchDirection.LEFT)
+			result = attack.set_col_target(enemy_division, LandAttack.ColSearchDirection.LEFT, self.col)
 	
 	## Grid Row
 	elif self.target_algorithm == TargetAlgorithm.GRIDROW:
