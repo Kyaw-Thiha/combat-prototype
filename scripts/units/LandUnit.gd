@@ -59,13 +59,16 @@ enum ArmourClass {SOFT, MEDIUM, HARD}
 ## ROW:
 ## - Target will be searched on the nearest row (Row-0), starting from the column the unit is located in
 ## - If the current row is empty, it will move onto the next row
-## GRID:
-## - Target will be searched across the whole grid, starting from Grid[0,0]
+## GRIDCOL:
+## - Target will be searched across the whole grid, row by row starting from Grid[0,0]
 ## - This algorithm is mainly used for priority first targets like snipers
+## GRIDROW:
+## - Target will be searched across the whole grid, row by row starting from Grid[0,0]
+## - This algorithm is mainly used for priority first targets like snipers (better than GRIDCOL since most units can focus fire on 1 unit)
 ## FIXED:
 ## - Target will not be prioritized, but will only search if a target 
 ## - This algorithm is mainly used by units like heavy artillery
-enum TargetAlgorithm {COLUMN, COLUMNLEFT, COLUMNRIGHT, ROW, FIXED}
+enum TargetAlgorithm {COLUMN, COLUMNLEFT, COLUMNRIGHT, ROW, GRIDROW, GRIDCOL, FIXED}
 var target_algorithm: TargetAlgorithm = TargetAlgorithm.ROW
 
 ## Target Priority
@@ -164,8 +167,11 @@ func land_attack(context: LandCombatContext) -> Array[LandAttack]:
 ## - If attack is not to be applied (for fixed attacks like heavy artillery), will return empty array []
 func find_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAttack]:
 	var result: LandUnit = null
+	## Row
 	if self.target_algorithm == TargetAlgorithm.ROW:
 		result = attack.set_row_target(enemy_division, self.target_priority)
+	
+	## Column
 	elif self.target_algorithm == TargetAlgorithm.COLUMN or self.target_algorithm == TargetAlgorithm.COLUMNRIGHT or self.target_algorithm == TargetAlgorithm.COLUMNLEFT:
 		if self.col <= 2:
 			self.target_algorithm = TargetAlgorithm.COLUMNRIGHT
@@ -173,6 +179,14 @@ func find_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAtt
 		else:
 			self.target_algorithm = TargetAlgorithm.COLUMNLEFT
 			result = attack.set_col_target(enemy_division, self.col, LandAttack.ColSearchDirection.LEFT)
+	
+	## Grid Row
+	elif self.target_algorithm == TargetAlgorithm.GRIDROW:
+		result = attack.set_grid_target(enemy_division, LandAttack.GridSearchDirection.ROW, self.target_priority)
+	
+	## Grid Col
+	elif self.target_algorithm == TargetAlgorithm.GRIDCOL:
+		result = attack.set_grid_target(enemy_division, LandAttack.GridSearchDirection.COL, self.target_priority)
 	
 	if result == null:
 		return [null]

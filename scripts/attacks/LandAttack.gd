@@ -133,6 +133,45 @@ func set_col_target(enemy_division: Division, col:int = 0, search_direction: Col
 			
 	return null  # if not found
 
+enum GridSearchDirection {ROW, COL}
+func set_grid_target(enemy_division: Division, search_direction: GridSearchDirection, priority: Dictionary[int, Array]):
+	var row = 0
+	var col = 0
+	var count = 0
+	var units_found: Dictionary[int, LandUnit] = {}   # Dictionary of found units based on priority level
+
+	while count < 5:
+		var pos = 5 * row + col
+		var enemy_unit = enemy_division.units[pos]
+		if enemy_unit != null and enemy_unit.health > 0:
+			# If no priority is set, return the first enemy unit found
+			if priority.is_empty():
+				self.target_unit = enemy_unit
+				return enemy_unit
+			# If priority is set, add the unit to necessary priority
+			add_unit_based_on_priority(units_found, priority, enemy_unit)
+		
+		## Going to the next cell
+		if search_direction == GridSearchDirection.ROW:
+			col += 1
+			if col >= 5:
+				col = 0
+				row += 1
+				if row >= 5:
+					row = 0
+				count += 1
+		elif search_direction == GridSearchDirection.COL:
+			row += 1
+			if row >= 5:
+				row = 0
+				col += 1
+				if col >= 5:
+					col = 0
+				count += 1
+	
+	## Choose the target with highest priority
+	self.target_unit = choose_unit_based_on_priority(units_found)
+	return self.target_unit
 
 ## Helper method to add unit based on priority list
 func add_unit_based_on_priority(units_found: Dictionary[int, LandUnit], priority: Dictionary[int, Array], current_unit: LandUnit):
