@@ -102,16 +102,17 @@ func get_total_recon_value() -> float:
 ## Method to apply damage to units from enemy attacks
 func apply_damage(attacks: Array[LandAttack], source: Division, recon_value: float):
 	for attack in attacks:
-		var target = self.units[attack.target_row * 5 + attack.target_col]
+		var target = attack.target_unit
 		if target != null and target.health > 0:
 			target.apply_Land_damage(attack, recon_value)
 		else:
 			# If the targeted enemy is dead, choose the next target
-			var result = attack.find_target(source)
-			if result == -1:
-				break    # If no enemies are left
-			elif result != null:
-				target.apply_Land_damage(attack, recon_value)
+			var result = attack.source_unit.find_enemy_targets(self, attack)
+			if len(result) != 0:
+				if result[0] == null:
+					break     # no enemies left
+				else:
+					target.apply_Land_damage(attack, recon_value)
 	
 	render_division()
 	return

@@ -10,6 +10,12 @@ class_name LandUnit
 
 # The unit class represent a 
 
+## 
+enum UnitNames {
+	StandardInfantry
+}
+@export var internal_name: UnitNames
+
 
 ## Health: 
 ## - Number of personals for infantry units
@@ -111,20 +117,29 @@ func air_attack():
 func naval_attack():
 	pass
 
-func land_attack(context: LandCombatContext):
+func land_attack(context: LandCombatContext, prev_attack: LandAttack = null) -> Array[LandAttack]:
 	# Getting the damage values based on damage type
-	var damages = self._get_land_attack(context.damage_type)
-	print("Row: ", self.row, "Col: ", self.col)
-	var attack = LandAttack.new(damages[0], damages[1], damages[2], self.row, self.col)
+	var attack: LandAttack
+	if prev_attack == null:
+		var damages = self._get_land_attack(context.damage_type)
+		print("Row: ", self.row, "Col: ", self.col)
+		attack = LandAttack.new(damages[0], damages[1], damages[2], self)
+		
+		# Applying damage drop-off based on the unit's position
+		attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
+	else:
+		# If the attack already exists (ie called when division tried to apply damage, but the target unit is already dead)
+		# We will just be updating the attack's target
+		attack = prev_attack
 	
 	# Finding the enemy target
-	var result = attack.set_row_target(context.enemy_division)
+	return find_enemy_targets(context.enemy_division, attack)
+
+## Targetting method to get the enemy unit positions on the attacks
+func find_enemy_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAttack]:
+	var result = attack.set_row_target(enemy_division)
 	if result == -1:
-		print("Enemy is missing")
-	
-	# Applying damage drop-off based on the unit's position
-	attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
-	
+		return [null]
 	return [attack]
 
 func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
