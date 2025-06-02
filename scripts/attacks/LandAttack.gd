@@ -48,24 +48,31 @@ func set_damage_drop_off(player_division: Division, drop_off_rate: Array[float],
 ## Will return position (5 * col + row) if found
 ## Else will return -1 if no target found (ie enemy division is empty)
 ## Row attack is mainly done by infantry units
-func set_row_target(enemy_division: Division, priority: Dictionary[int, Array]) -> LandUnit:
+func set_row_target(enemy_division: Division, priority: Dictionary[int, Array], row = -1) -> LandUnit:
 	var units_found: Dictionary[int, LandUnit] = {}   # Dictionary of found units based on priority level
 	var col = self.source_unit.col
-	var row = 0
 	# if target unit is already set, start from there
-	if self.target_unit != null:
-		row = self.target_unit.row
+	if row == -1: 
+		if self.target_unit != null:
+			row = self.target_unit.row
+		else: 
+			row = 0
 	
-	# Finding the row where unit exists
+	## Finding the row where unit exists
 	var found = false
-	while row < 5 and not found:
+	var row_count = 0
+	while row_count < 5 and not found:
 		for i in range(5):
 			var pos = 5 * row + i
 			var enemy_unit = enemy_division.units[pos]
 			if enemy_unit != null and enemy_unit.health > 0:
 				found = true
+		## If no unit found in this row, go to the next one
 		if not found:
 			row += 1
+			row_count += 1
+			if row >= 5:
+				row = 0
 
 	# If there is no row with a unit, return null
 	if not found:

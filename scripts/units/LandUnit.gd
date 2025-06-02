@@ -151,7 +151,7 @@ func land_attack(context: LandCombatContext) -> Array[LandAttack]:
 	attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
 	
 	# Finding the enemy target
-	return find_enemy_targets(context.enemy_division, attack)
+	return find_targets(context.enemy_division, attack)
 
 
 ## Targetting method to get the enemy unit positions on the attacks
@@ -162,10 +162,9 @@ func land_attack(context: LandCombatContext) -> Array[LandAttack]:
 ## Note that this is the method that is to be overriden in units with very unique attacks
 ## - If no enemy is left, will return [null]
 ## - If attack is not to be applied (for fixed attacks like heavy artillery), will return empty array []
-func find_enemy_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAttack]:
+func find_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAttack]:
 	var result: LandUnit = null
 	if self.target_algorithm == TargetAlgorithm.ROW:
-		print("Row!!!")
 		result = attack.set_row_target(enemy_division, self.target_priority)
 	
 	if result == null:
