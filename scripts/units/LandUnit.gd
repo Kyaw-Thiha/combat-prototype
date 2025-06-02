@@ -50,7 +50,31 @@ enum ArmourClass {SOFT, MEDIUM, HARD}
 @export var armour_class: ArmourClass
 
 ## Target Algorithm
-@export var target_algorithm: LandAttack.TargetAlgorithm = LandAttack.TargetAlgorithm.ROW
+## COLUMNLEFT: 
+## - Target will be searched by column, starting from the column that the source unit is located it
+## - If the current column is empty, it will move to the column to the left of the current column
+## COLUMNRIGHT:
+## - Target will be searched by column, starting from the column that the source unit is located it
+## - If the current column is empty, it will move to the column to the right of the current column
+## ROW:
+## - Target will be searched on the nearest row (Row-0), starting from the column the unit is located in
+## - If the current row is empty, it will move onto the next row
+## GRID:
+## - Target will be searched across the whole grid, starting from Grid[0,0]
+## - This algorithm is mainly used for priority first targets like snipers
+## FIXED:
+## - Target will not be prioritized, but will only search if a target 
+## - This algorithm is mainly used by units like heavy artillery
+enum TargetAlgorithm {COLUMN, COLUMNLEFT, COLUMNRIGHT, ROW, FIXED}
+var target_algorithm: TargetAlgorithm = TargetAlgorithm.ROW
+
+## Target Priority
+## A priority system used to select different targets based on their preferred priority
+## - It is in a dictionary of array of internal_name of units
+## - Key 0 represents the units with highest priority
+## - Units not included among the keys will be considered as 'non-priority', 
+##   and will be represented with key 100 in internal process
+var target_priority: Dictionary[int, Array] = {}
 
 ## Damage Drop-Off Multiplier
 ## - To prevent more units = more power
@@ -117,31 +141,39 @@ func air_attack():
 func naval_attack():
 	pass
 
-func land_attack(context: LandCombatContext, prev_attack: LandAttack = null) -> Array[LandAttack]:
+func land_attack(context: LandCombatContext) -> Array[LandAttack]:
 	# Getting the damage values based on damage type
-	var attack: LandAttack
-	if prev_attack == null:
-		var damages = self._get_land_attack(context.damage_type)
-		print("Row: ", self.row, "Col: ", self.col)
-		attack = LandAttack.new(damages[0], damages[1], damages[2], self)
-		
-		# Applying damage drop-off based on the unit's position
-		attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
-	else:
-		# If the attack already exists (ie called when division tried to apply damage, but the target unit is already dead)
-		# We will just be updating the attack's target
-		attack = prev_attack
+	var damages = self._get_land_attack(context.damage_type)
+	print("Row: ", self.row, "Col: ", self.col)
+	var attack = LandAttack.new(damages[0], damages[1], damages[2], self)
+	
+	# Applying damage drop-off based on the unit's position
+	attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
 	
 	# Finding the enemy target
 	return find_enemy_targets(context.enemy_division, attack)
 
+
 ## Targetting method to get the enemy unit positions on the attacks
+## To check if the method is being called when the unit is attacking, or if called when enemy is applyihng damage,
+## check the attack.target_unit property.
+## If the property is null, it is called when the unit is attacking
+## 
+## Note that this is the method that is to be overriden in units with very unique attacks
+## - If no enemy is left, will return [null]
+## - If attack is not to be applied (for fixed attacks like heavy artillery), will return empty array []
 func find_enemy_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAttack]:
-	var result = attack.set_row_target(enemy_division)
-	if result == -1:
+	var result: LandUnit = null
+	if self.target_algorithm == TargetAlgorithm.ROW:
+		print("Row!!!")
+		result = attack.set_row_target(enemy_division, self.target_priority)
+	
+	if result == null:
 		return [null]
 	return [attack]
 
+
+## Method to apply incoming land damage from enemy units
 func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
 	# Choosing damage based on armour class
 	var damage: float = 0
@@ -160,6 +192,8 @@ func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
 	# Apply the damage
 	self.health = self.health - (damage - self.defense)
 	self.health = clampf(self.health, 0, self.health)   # Ensuring unit's health is not negative value
+
+
 
 ## Internal getter to return damage values based on damage type
 func _get_land_attack(damage_type: DamageType) -> Array[float]:

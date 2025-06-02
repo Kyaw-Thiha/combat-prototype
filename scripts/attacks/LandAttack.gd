@@ -11,43 +11,15 @@ var source_unit: LandUnit
 ## Target unit of the attack
 var target_unit: LandUnit
 
-## Target Algorithm
-## COLUMNLEFT: 
-## - Target will be searched by column, starting from the column that the source unit is located it
-## - If the current column is empty, it will move to the column to the left of the current column
-## COLUMNRIGHT:
-## - Target will be searched by column, starting from the column that the source unit is located it
-## - If the current column is empty, it will move to the column to the right of the current column
-## ROW:
-## - Target will be searched on the nearest row (Row-0), starting from the column the unit is located in
-## - If the current row is empty, it will move onto the next row
-## GRID:
-## - Target will be searched across the whole grid, starting from Grid[0,0]
-## - This algorithm is mainly used for priority first targets like snipers
-## FIXED:
-## - Target will not be prioritized, but will only search if a target 
-## - This algorithm is mainly used by units like heavy artillery
-enum TargetAlgorithm {COLUMN, COLUMNLEFT, COLUMNRIGHT, ROW, FIXED}
-var target_algorithm: TargetAlgorithm = TargetAlgorithm.COLUMN
-
-## Target Priority
-## A priority system used to select different targets based on their preferred priority
-## - It is in a dictionary of array of internal_name of units
-## - Key 0 represents the units with highest priority
-## - Units not included among the keys will be considered as 'non-priority', 
-##   and will be represented with key 100 in internal process
-var target_priority: Dictionary[int, Array]
-
 ## Determines whether or not the damage values are affected by recon
 var is_recon_affected: bool = false
 
-func _init(soft_damage = 0.0, medium_damage = 0.0, hard_damage = 0.0, source_unit: LandUnit = null, target_unit:LandUnit = null, target_algorithm = TargetAlgorithm.ROW, is_recon_affected: bool = false) -> void:
+func _init(soft_damage = 0.0, medium_damage = 0.0, hard_damage = 0.0, source_unit: LandUnit = null, target_unit:LandUnit = null, is_recon_affected: bool = false) -> void:
 	self.soft_damage = soft_damage
 	self.medium_damage = medium_damage
 	self.hard_damage = hard_damage
 	self.source_unit  = source_unit
 	self.target_unit = target_unit
-	self.target_algorithm = target_algorithm
 	self.is_recon_affected = is_recon_affected
 
 ## Method to update damage values by a multiplier
@@ -70,51 +42,56 @@ func set_damage_drop_off(player_division: Division, drop_off_rate: Array[float],
 	
 	return drop_off_rate[drop_off_count]
 
-## Helper Classes to find target for most common attack algorithms
-
-## Method to find target based on the algorithm
-## Return
-## - null if no need to do any damage
-## - -1 if enemy division has been wiped out
-## - else will return target position
-func find_target(enemy_division: Division):
-	if self.target_algorithm == TargetAlgorithm.ROW:
-		return set_row_target(enemy_division)
-	elif self.target_algorithm == TargetAlgorithm.COLUMN:
-		return self.set_col_target(enemy_division)
-	elif self.target_algorithm == TargetAlgorithm.FIXED:
-		return null
+## Helper methods to find target for most common attack algorithms
 
 ## Method to find target by going through the row
 ## Will return position (5 * col + row) if found
 ## Else will return -1 if no target found (ie enemy division is empty)
 ## Row attack is mainly done by infantry units
-func set_row_target(enemy_division: Division) -> int:
-	self.target_algorithm = TargetAlgorithm.ROW
-	
+func set_row_target(enemy_division: Division, priority: Dictionary[int, Array]) -> LandUnit:
 	var units_found: Dictionary[int, LandUnit] = {}   # Dictionary of found units based on priority level
-	var source_col = self.source_unit.col
-	var col = source_col
+	var col = self.source_unit.col
 	var row = 0
 	# if target unit is already set, start from there
 	if self.target_unit != null:
 		row = self.target_unit.row
+	
+	# Finding the row where unit exists
+	var found = false
+	while row < 5 and not found:
+		for i in range(5):
+			var pos = 5 * row + i
+			var enemy_unit = enemy_division.units[pos]
+			if enemy_unit != null and enemy_unit.health > 0:
+				found = true
+		if not found:
+			row += 1
 
-	while col != source_col or row < 5:
-		# Checking the enemy in position
+	# If there is no row with a unit, return null
+	if not found:
+		return null
+	
+	var count = 0      # count to stop the loop when we get back to starting col
+	while count < 5:
 		var pos = 5 * row + col
 		var enemy_unit = enemy_division.units[pos]
 		if enemy_unit != null and enemy_unit.health > 0:
-			self.target_unit = enemy_unit
-			return pos
+			# If no priority is set, return the first enemy unit found
+			if priority.is_empty():
+				self.target_unit = enemy_unit
+				return enemy_unit
+			# If priority is set, add the unit to necessary priority
+			add_unit_based_on_priority(units_found, priority, enemy_unit)
 		
-		# Incrementing to next checking position
+		# Incrementing the column to the next column
 		col += 1
 		if col >= 5:
 			col = 0
-		if col == source_col:
-			row += 1
-	return -1
+		count += 1
+	
+	# Choose the unit with highest priority
+	self.target_unit = choose_unit_based_on_priority(units_found)
+	return self.target_unit
 
 ## Method to find target by going through the column
 ## Will return position (5 * col + row) if found
@@ -122,8 +99,6 @@ func set_row_target(enemy_division: Division) -> int:
 ## Column attack is mainly done by armoured units
 enum ColSearchDirection {LEFT, RIGHT}
 func set_col_target(enemy_division: Division, col:int = 0, search_direction: ColSearchDirection = ColSearchDirection.RIGHT) -> int:
-	self.target_algorithm = TargetAlgorithm.COLUMN
-	
 	var unit_found = false
 	var row = 0
 	var count = 0      # count to stop the loop when we get back to starting col
@@ -153,9 +128,9 @@ func set_col_target(enemy_division: Division, col:int = 0, search_direction: Col
 
 
 ## Helper method to add unit based on priority list
-func add_unit_based_on_priority(units_found: Dictionary[int, LandUnit], current_unit: LandUnit):
-	for priority_level in self.target_priority:
-		var units: Array[LandUnit] = self.target_priority[priority_level]
+func add_unit_based_on_priority(units_found: Dictionary[int, LandUnit], priority: Dictionary[int, Array], current_unit: LandUnit):
+	for priority_level in priority:
+		var units: Array[LandUnit] = priority[priority_level]
 		for unit in units: 
 			## If unit is in the priority list, and no units of same priority has been found yet
 			if unit.internal_name == current_unit.internal_name and not units_found.has(priority_level):
@@ -168,7 +143,7 @@ func add_unit_based_on_priority(units_found: Dictionary[int, LandUnit], current_
 	return
 
 ## Helper method to return the unit with highest priority
-func choose_unit_based_on_priority(units_found: Dictionary[int, LandUnit]):
+func choose_unit_based_on_priority(units_found: Dictionary[int, LandUnit]) -> LandUnit:
 	var sorted_keys = units_found.keys()
 	sorted_keys.sort()
 	return units_found[sorted_keys[0]]

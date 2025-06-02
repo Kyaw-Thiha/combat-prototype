@@ -15,6 +15,7 @@ func _init(row: int, col: int, health: float = 500, combat_readiness: float = 1,
 	self.hard_offense = 1
 	self.defense = 0
 	self.armour_class = ArmourClass.SOFT
+	self.target_algorithm = TargetAlgorithm.ROW
 	self.air_damage = 0.01
 	self.naval_damage = 0
 	
