@@ -10,7 +10,7 @@ class_name LandUnit
 
 # The unit class represent a 
 
-## 
+## Internal name to reference the units by
 enum UnitNames {
 	StandardInfantry
 }
@@ -49,7 +49,18 @@ enum UnitNames {
 enum ArmourClass {SOFT, MEDIUM, HARD}
 @export var armour_class: ArmourClass
 
+## Armour System
+## Front Armour: Amount of armour at the front of the  armoured unit
+@export var front_armour: float = 0
+## Side Armour: Amount of armour at the sides of the armoured unit 
+@export var side_armour: float = 0
+
+## Piercing
+## Amount of penetrating a unit has against heavily armoured units
+@export var piercing: float = 0
+
 ## Target Algorithm
+## 
 ## COLUMNLEFT: 
 ## - Target will be searched by column, starting from the column that the source unit is located it
 ## - If the current column is empty, it will move to the column to the left of the current column
@@ -204,6 +215,19 @@ func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
 			damage = attack.medium_damage
 		ArmourClass.HARD:
 			damage = attack.hard_damage
+			
+			## Calculating the effective armour based on column difference
+			var col_diff = abs(self.col - attack.source_unit.col)
+			var effective_armour = self.front_armour
+			if col_diff == 1:
+				effective_armour = (self.front_armour + self.side_armour) / 2
+			elif col_diff >= 2:
+				effective_armour = self.side_armour
+			
+			## Updating the damage if piercing is less than the effective_armour
+			var piercing = attack.source_unit.piercing
+			if piercing < effective_armour:
+				damage *= ( 1 / ( 2 * ((effective_armour - piercing) / 10) ) )
 
 	# If attack is recon-based, apply the recon effect
 	if attack.is_recon_affected:
@@ -212,7 +236,6 @@ func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
 	# Apply the damage
 	self.health = self.health - (damage - self.defense)
 	self.health = clampf(self.health, 0, self.health)   # Ensuring unit's health is not negative value
-
 
 
 ## Internal getter to return damage values based on damage type
