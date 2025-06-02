@@ -4,6 +4,8 @@ class_name StandardInfantry
 var recon_effects = [0, 0, 0, 0.1, 0.2]
 
 func _init(row: int, col: int, health: float = 500, combat_readiness: float = 1, experience: float = 0):
+	self.external_name = "Standard Infantry"
+	self.internal_name = UnitNames.StandardInfantry
 	self.row = row
 	self.col = col
 	self.health = health

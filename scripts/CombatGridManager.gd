@@ -69,8 +69,19 @@ func _on_timer_timeout():
 		# queue_free()
 
 func process_combat():
-	var player_combat_context = LandCombatContext.new(self.player_damage_type, self.player_division, self.enemy_division)
-	var enemy_combat_context = LandCombatContext.new(self.enemy_damage_type, self.enemy_division, self.player_division)
+	# Creating attack global effects
+	# Each global effect contain an array of function(landAttack: LandAttack) ->  void
+	var player_global_effects: Array[Array] = []
+	var enemy_global_effects: Array[Array] = []
+	for i in range(25):
+		player_global_effects.append([])
+		enemy_global_effects.append([])
+	
+	# Creating attack context
+	var player_combat_context = LandCombatContext.new(self.player_damage_type, self.player_division, player_global_effects, self.enemy_division, enemy_global_effects)
+	var enemy_combat_context = LandCombatContext.new(self.enemy_damage_type, self.enemy_division, enemy_global_effects, self.player_division, player_global_effects)
+	
+	
 	# Getting the attack values
 	var player_attacks: Array[LandAttack] = player_division.attack(player_combat_context)
 	var enemy_attacks: Array[LandAttack] = enemy_division.attack(enemy_combat_context)

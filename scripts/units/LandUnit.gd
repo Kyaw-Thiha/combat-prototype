@@ -10,6 +10,9 @@ class_name LandUnit
 
 # The unit class represent a 
 
+## External name to display the units
+@export var external_name: String
+
 ## Internal name to reference the units by
 enum UnitNames {
 	StandardInfantry
@@ -79,7 +82,7 @@ enum ArmourClass {SOFT, MEDIUM, HARD}
 ## FIXED:
 ## - Target will not be prioritized, but will only search if a target 
 ## - This algorithm is mainly used by units like heavy artillery
-enum TargetAlgorithm {COLUMN, COLUMNLEFT, COLUMNRIGHT, ROW, GRIDROW, GRIDCOL, FIXED}
+enum TargetAlgorithm {COLUMN, ROW, GRIDROW, GRIDCOL, FIXED}
 var target_algorithm: TargetAlgorithm = TargetAlgorithm.ROW
 
 ## Target Priority
@@ -147,6 +150,9 @@ var col:int
 
 enum DamageType {DEFENSE, OFFENSE}
 
+func get_id():
+	return OS.get_unique_id()
+
 # Function definitions for different attack types
 #func land_attack(context: LandCombatContext) -> LandAttack:
 	#return LandAttack.new()
@@ -183,12 +189,10 @@ func find_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAtt
 		result = attack.set_row_target(enemy_division, self.target_priority)
 	
 	## Column
-	elif self.target_algorithm == TargetAlgorithm.COLUMN or self.target_algorithm == TargetAlgorithm.COLUMNRIGHT or self.target_algorithm == TargetAlgorithm.COLUMNLEFT:
+	elif self.target_algorithm == TargetAlgorithm.COLUMN:
 		if self.col <= 2:
-			self.target_algorithm = TargetAlgorithm.COLUMNRIGHT
 			result = attack.set_col_target(enemy_division, LandAttack.ColSearchDirection.RIGHT, self.col)
 		else:
-			self.target_algorithm = TargetAlgorithm.COLUMNLEFT
 			result = attack.set_col_target(enemy_division, LandAttack.ColSearchDirection.LEFT, self.col)
 	
 	## Grid Row
