@@ -105,7 +105,7 @@ func set_row_target(enemy_division: Division, priority: Dictionary[int, Array], 
 ## Else will return -1 if no target found (ie enemy division is empty)
 ## Column attack is mainly done by armoured units
 enum ColSearchDirection {LEFT, RIGHT}
-func set_col_target(enemy_division: Division, col:int = 0, search_direction: ColSearchDirection = ColSearchDirection.RIGHT) -> int:
+func set_col_target(enemy_division: Division, col:int = 0, search_direction: ColSearchDirection = ColSearchDirection.RIGHT) -> LandUnit:
 	var unit_found = false
 	var row = 0
 	var count = 0      # count to stop the loop when we get back to starting col
@@ -115,7 +115,7 @@ func set_col_target(enemy_division: Division, col:int = 0, search_direction: Col
 		var enemy_unit = enemy_division.units[pos]
 		if enemy_unit != null and enemy_unit.health > 0:
 			self.target_unit = enemy_unit
-			return pos
+			return enemy_unit
 		
 		# Incrementing to next checking position
 		row += 1
@@ -131,7 +131,7 @@ func set_col_target(enemy_division: Division, col:int = 0, search_direction: Col
 					col = 4
 			count += 1
 			
-	return -1  # if not found
+	return null  # if not found
 
 
 ## Helper method to add unit based on priority list

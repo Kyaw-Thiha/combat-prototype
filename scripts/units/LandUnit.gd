@@ -166,6 +166,13 @@ func find_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAtt
 	var result: LandUnit = null
 	if self.target_algorithm == TargetAlgorithm.ROW:
 		result = attack.set_row_target(enemy_division, self.target_priority)
+	elif self.target_algorithm == TargetAlgorithm.COLUMN or self.target_algorithm == TargetAlgorithm.COLUMNRIGHT or self.target_algorithm == TargetAlgorithm.COLUMNLEFT:
+		if self.col <= 2:
+			self.target_algorithm = TargetAlgorithm.COLUMNRIGHT
+			result = attack.set_col_target(enemy_division, self.col, LandAttack.ColSearchDirection.RIGHT)
+		else:
+			self.target_algorithm = TargetAlgorithm.COLUMNLEFT
+			result = attack.set_col_target(enemy_division, self.col, LandAttack.ColSearchDirection.LEFT)
 	
 	if result == null:
 		return [null]
