@@ -13,25 +13,8 @@ func _ready() -> void:
 	self.ui = Panel.new()
 	self.custom_minimum_size = Vector2(200, 300)
 	
-	var margin_container = MarginContainer.new()
-	var vline = VBoxContainer.new()
+	render_division()
 	
-	print("units: ", self.units)
-	for row in range(5):
-		var hline = HBoxContainer.new();
-		for col in range(5):
-			var unit = self.units[row * 5 + col]
-			var btn = Button.new()
-			if unit != null:
-				btn.text = "%d, %d, Health: %f" % [row, col, unit.health]
-			btn.custom_minimum_size = Vector2(180, 50)
-			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			hline.add_child(btn)
-		vline.add_child(hline)
-	
-	margin_container.add_child(vline)
-	self.ui.add_child(margin_container)
 	self.add_child(self.ui)
 	
 	#print_ui_children(self)
