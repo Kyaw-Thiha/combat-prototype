@@ -1,6 +1,7 @@
 extends Node
 class_name  LandAttack
 
+## Damage value against the enemy target
 var soft_damage: float
 var medium_damage: float
 var hard_damage: float
@@ -13,6 +14,9 @@ var target_unit: LandUnit
 
 ## Determines whether or not the damage values are affected by recon
 var is_recon_affected: bool = false
+
+## Effects
+var effects: Array[Effect] = []
 
 func _init(soft_damage = 0.0, medium_damage = 0.0, hard_damage = 0.0, source_unit: LandUnit = null, target_unit:LandUnit = null, is_recon_affected: bool = false) -> void:
 	self.soft_damage = soft_damage

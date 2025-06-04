@@ -119,6 +119,10 @@ var target_priority: Dictionary[int, Array] = {}
 ## - Most units have concealment value of 0
 @export var concealment_value:float = 0
 
+## Applied Effects
+## These are the effects that are applied to the unit from external sources like enemy attacks
+@export var applied_effects: Array[Effect] = []
+
 ## Combat Readiness
 ## Amount of combat readiness that a unit has
 ## Note that
@@ -161,7 +165,10 @@ func air_attack():
 func naval_attack():
 	pass
 
-func land_attack(context: LandCombatContext) -> Array[LandAttack]:
+func land_attack(context: LandCombatContext, attack_effects: Array[Effect] = []) -> Array[LandAttack]:
+	# Apply the effects
+	_apply_effects()
+	
 	# Getting the damage values based on damage type
 	var damages = self._get_land_attack(context.damage_type)
 	print("Row: ", self.row, "Col: ", self.col)
@@ -170,11 +177,17 @@ func land_attack(context: LandCombatContext) -> Array[LandAttack]:
 	# Applying damage drop-off based on the unit's position
 	attack.set_damage_drop_off(context.player_division, self.damage_drop_off, self.row, self.col)
 	
+	# Add the attack effects to the attack
+	attack.effects.append_array(attack_effects)
+	
+	# Remove the effects
+	_remove_effects()
+	
 	# Finding the enemy target
 	return find_targets(context.enemy_division, attack)
 
 
-## Targetting method to get the enemy unit positions on the attacks
+## Targeting method to get the enemy unit positions on the attacks
 ## To check if the method is being called when the unit is attacking, or if called when enemy is applyihng damage,
 ## check the attack.target_unit property.
 ## If the property is null, it is called when the unit is attacking
@@ -210,6 +223,10 @@ func find_targets(enemy_division: Division, attack: LandAttack) -> Array[LandAtt
 
 ## Method to apply incoming land damage from enemy units
 func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
+	# Apply the effects, and then add new effects from the attack
+	_apply_effects()
+	self.applied_effects.append_array(attack.effects)
+	
 	# Choosing damage based on armour class
 	var damage: float = 0
 	match self.armour_class:
@@ -240,7 +257,19 @@ func apply_Land_damage(attack: LandAttack, enemy_recon_value: float):
 	# Apply the damage
 	self.health = self.health - (damage - self.defense)
 	self.health = clampf(self.health, 0, self.health)   # Ensuring unit's health is not negative value
+	
+	# Remove the effects
+	_remove_effects()
 
+func _apply_effects():
+	for effect in self.applied_effects:
+		if not effect.is_new:
+			effect.apply(self)
+
+func _remove_effects():
+	for effect in self.applied_effects:
+		if not effect.is_new:
+			effect.remove(self)
 
 ## Internal getter to return damage values based on damage type
 func _get_land_attack(damage_type: DamageType) -> Array[float]:

@@ -101,6 +101,24 @@ func apply_damage(attacks: Array[LandAttack], source: Division, recon_value: flo
 	render_division()
 	return
 
+## Method to update the applied effects on the units
+func update_effects():
+	for unit in self.units:
+		if unit != null:
+			# Decrement the duration of the applied effects
+			for effect in unit.applied_effects:
+				if not effect.is_new:
+					effect.duration -= 1
+				effect.is_new = false
+			# Remove the effects that are expired
+			unit.applied_effects = unit.applied_effects.filter(func(effect: Effect): return effect.duration > 0)
+
+## Method to clear all applied effects on the units
+## Intended to be called when the combat ends
+func remove_all_effects():
+	for unit in self.units:
+		unit.applied_effects.clear()
+
 ## Method to check if division is wiped out
 func check_if_wiped_out():
 	for row in 5:

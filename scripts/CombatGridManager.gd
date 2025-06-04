@@ -102,6 +102,10 @@ func process_combat():
 	enemy_division.apply_damage(player_attacks, player_division, player_recon_value)
 	print("Player Attacks:", player_attacks)
 	
+	# Update the applied effects on each of the units
+	player_division.update_effects()
+	enemy_division.update_effects()
+	
 	# Check if either player or division are wiped out
 	# If they are, apply experience gain accordingly
 	
