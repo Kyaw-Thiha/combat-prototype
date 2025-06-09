@@ -7,6 +7,7 @@ var enemy_division: Division
 var enemy_damage_type: LandUnit.DamageType
 
 var timer: Timer
+var current_time: int # Added by Lumiere, holds the value of the time(seconds) ellapsed from start, used timer variable
 
 ## Combat Stage
 ## 1: Contact
@@ -50,7 +51,7 @@ func _ready() -> void:
 	
 	# Rendering the timer
 	self.timer = Timer.new()
-	self.timer.wait_time = 3		# Every 30seconds
+	self.timer.wait_time = 1		# Every 30seconds
 	self.timer.one_shot = false
 	self.timer.autostart = true
 	self.timer.timeout.connect(_on_timer_timeout)
@@ -58,15 +59,18 @@ func _ready() -> void:
 	self.add_child(self.timer) 
 
 func _on_timer_timeout():
-	print("Timer fired!")
-	process_combat()
-	
-	var player_dead = self.player_division.check_if_wiped_out()
-	var enemy_dead = self.enemy_division.check_if_wiped_out()
-	
-	if player_dead or enemy_dead:
-		timer.stop()
-		# queue_free()
+	current_time += 1
+	print("current time: ", current_time)
+	if current_time % 3 == 0:
+		print("Timer fired!")
+		process_combat()
+		
+		var player_dead = self.player_division.check_if_wiped_out()
+		var enemy_dead = self.enemy_division.check_if_wiped_out()
+		
+		if player_dead or enemy_dead:
+			timer.stop()
+			#queue_free()
 
 func process_combat():
 	# Creating attack global effects
