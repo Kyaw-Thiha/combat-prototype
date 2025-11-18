@@ -1,5 +1,5 @@
 extends CanvasLayer
-class_name CombatInteface
+class_name LandToLandCombat
 
 var player_division: Division
 var player_damage_type: LandUnit.DamageType
